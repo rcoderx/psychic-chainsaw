@@ -80,34 +80,22 @@ app.post('/updateScore', async (req, res) => {
 // Endpoint to update lives
 app.post('/updateLives', async (req, res) => {
     const { address, lives } = req.body;
-    if (!address || !Number.isInteger(score)) {
-        return res.status(400).send('Invalid input');
+
+    if (!address || !Number.isInteger(lives)) {
+        return res.status(400).send('Invalid request');
     }
+
     try {
-        await Player.findOneAndUpdate({ address }, { $set: { lives }});
+        await Player.findOneAndUpdate({ address }, { $set: { lives } });
         res.send('Lives updated successfully');
-    } catch (err) {
-        res.status(500).send('Error updating lives');
-    }
-});
-app.post('/updateLives', async (req, res) => {
-    const { address, lives } = req.body;
-    if (!address || !Number.isInteger(score)) {
-        return res.status(400).send('Invalid input');
-    }
-    try {
-        await Player.findOneAndUpdate({ address }, { $set: { lives }});
-        res.send('Lives updated successfully');
-    } catch (err) {
+    } catch (error) {
         res.status(500).send('Error updating lives');
     }
 });
 
+
 app.get('/getLives', async (req, res) => {
     const address = req.query.address;
-    if (!address || !Number.isInteger(score)) {
-        return res.status(400).send('Invalid input');
-    }
     try {
         const player = await Player.findOne({ address });
         if (player) {
@@ -120,91 +108,42 @@ app.get('/getLives', async (req, res) => {
     }
 });
 
-// Assuming you have the Web3 setup and smart contract initialization as before
-
 // Endpoint to distribute rewards to the top 100 players
-app.post('/distributeRewards', async (req, res) => {
-    try {
-        // Fetch the top 100 players based on their scores
-        const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
-
-        // Calculate the total score of the top 100 players
-        const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
-
-        // Calculate the reward for each player
-        // Assuming 'totalRewardPool' is the total amount of tokens to be distributed
-        const totalRewardPool = 0;  /* Total reward tokens */
-        const rewards = topPlayers.map(player => ({
-            address: player.address,
-            amount: (player.score / totalScore) * totalRewardPool
-        }));
-
-        // Distribute rewards using the smart contract
-        for (const reward of rewards) {
-            await contract.methods.transfer(reward.address, reward.amount)
-                .send({ from: web3.eth.defaultAccount }); // Ensure this account has enough Ether for gas
-        }
-
-        res.send('Rewards distributed successfully');
-    } catch (error) {
-        console.error('Error distributing rewards:', error);
-        res.status(500).send('Error distributing rewards');
-    }
-});
-
-// Web3 and Smart Contract Setup
-
-// Function to distribute rewards
-app.post('/distributeRewards', async (req, res) => {
-    const { winners } = req.body; // Array of winner objects with address and reward amount
-    const privateKey = process.env.PRIVATE_KEY; // Private key of the account sending transactions
-
-    try {
-        const account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
-        web3.eth.accounts.wallet.add(account);
-        web3.eth.defaultAccount = account.address;
-
-        for (const winner of winners) {
-            const transfer = contract.methods.transfer(winner.address, winner.amount);
-            const options = {
-                to: transfer._parent._address,
-                data: transfer.encodeABI(),
-                gas: await transfer.estimateGas({from: account.address}),
-            };
-            const signed = await web3.eth.accounts.signTransaction(options, '0x' + privateKey);
-            await web3.eth.sendSignedTransaction(signed.rawTransaction);
-        }
-
-        res.send('Rewards distributed successfully');
-    } catch (error) {
-        console.error('Error distributing rewards:', error);
-        res.status(500).send('Error distributing rewards');
-    }
-    schedule.scheduleJob('0 0 * * *', async function() {
-        await distributeRewards();
-    });
-});
+// Common function for distributing rewards
 async function distributeRewards() {
     try {
         const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
         const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
-        const totalRewardPool = 1000; // Total reward tokens, adjust as necessary
+        const totalRewardPool = ethers.utils.parseUnits('1000', 'ether');
 
-        const contract = new ethers.Contract(contractAddress, contractABI, provider.getSigner());
+        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+        const contract = new ethers.Contract(contractAddress, contractABI, wallet);
+
         for (const player of topPlayers) {
-            const rewardAmount = ethers.utils.parseUnits((player.score / totalScore * totalRewardPool).toString(), 'ether');
+            const rewardAmount = (player.score / totalScore) * totalRewardPool;
             const tx = await contract.transfer(player.address, rewardAmount);
             await tx.wait();
         }
-
+        
         console.log('Rewards distributed successfully');
+        return 'Rewards distributed successfully';
     } catch (error) {
         console.error('Error distributing rewards:', error);
+        throw new Error('Error distributing rewards');
     }
 }
 
+// POST endpoint to manually trigger reward distribution
+app.post('/distributeRewards', async (req, res) => {
+    try {
+        const message = await distributeRewards();
+        res.send(message);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
 
-// Schedule the reward distribution to occur daily at 12 AM UTC
+// Schedule automatic reward distribution at 12 AM UTC
 schedule.scheduleJob('0 0 * * *', async function() {
     await distributeRewards();
 });
