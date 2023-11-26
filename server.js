@@ -48,9 +48,30 @@ mongoose.connect(process.env.MONGODB_URI)
 // Define a schema for the leaderboard
 const playerSchema = new mongoose.Schema({
     address: String,
-    score: Number,
+    score: { type: Number, default: 0 },
     lives: { type: Number, default: 10 }
 });
+// Endpoint to save or update user
+app.post('/saveUser', async (req, res) => {
+    const { address } = req.body;
+
+    try {
+        console.log("POST /saveUser called with address:", address);
+
+        let user = await Player.findOne({ address });
+
+        if (!user) {
+            user = new Player({ address, score: 0, lives: 10 });
+            await user.save();
+        }
+
+        res.json({ message: 'User saved or updated', lives: user.lives });
+    } catch (error) {
+        console.error("Error in POST /saveUser:", error);
+        res.status(500).send('Error saving user');
+    }
+});
+
 
 
 const Player = mongoose.model('Player', playerSchema);
@@ -61,6 +82,7 @@ app.get('/leaderboard', async (req, res) => {
         const topPlayers = await Player.find().sort({ score: -1 }).limit(10);
         res.json(topPlayers);
     } catch (err) {
+        console.error("Error in GET /leaderboard:", err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -76,13 +98,15 @@ app.post('/updateScore', async (req, res) => {
         const player = await Player.findOneAndUpdate({ address }, { $inc: { score }}, { upsert: true, new: true });
         res.json(player);
     } catch (err) {
+        console.error("Error in POST /updateScore:", err);
         res.status(500).json({ message: err.message });
     }
 });
 
 // Endpoint to update lives
 app.post('/updateLives', async (req, res) => {
-    const { address, lives } = req.body;
+    try {
+        console.log("POST /updateLives called with:", req.body);
 
     if (!address || !Number.isInteger(lives)) {
         return res.status(400).send('Invalid request');
@@ -94,6 +118,10 @@ app.post('/updateLives', async (req, res) => {
     } catch (error) {
         res.status(500).send('Error updating lives');
     }
+} catch (error) {
+    console.error("Error in POST /updateLives:", error);
+    res.status(500).send('Error updating lives');
+}
 });
 
 
@@ -107,10 +135,10 @@ app.get('/getLives', async (req, res) => {
             res.status(404).send('Player not found');
         }
     } catch (err) {
+        console.error("Error in GET /getLives:", err);
         res.status(500).send('Error retrieving lives');
     }
 });
-
 // Endpoint to distribute rewards to the top 100 players
 // Common function for distributing rewards
 async function distributeRewards() {
