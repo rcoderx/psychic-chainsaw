@@ -37,9 +37,10 @@ schedule.scheduleJob('0 0 * * *', async function() {
 // Add this line to log the MongoDB URI
 console.log('MongoDB URI:', process.env.MONGODB_URI);
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
+
 
 // Define a schema for the leaderboard
 const playerSchema = new mongoose.Schema({
