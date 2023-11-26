@@ -11,7 +11,7 @@ const contract = new ethers.Contract(contractAddress, contractABI, provider);
 
 const app = express();
 app.use(cors({
-    origin: 'https://legendary-memory-ten.vercel.app/' // Replace with your front-end's domain
+    origin: 'https://legendary-memory-ten.vercel.app' // Replace with your front-end's domain
 }));
 const corsOptions = {
     origin: 'https://legendary-memory-ten.vercel.app',
