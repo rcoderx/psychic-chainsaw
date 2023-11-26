@@ -1,0 +1,20 @@
+{
+    "name": "snekcoin-saga",
+    "version": "1.0.0",
+    "description": "A blockchain-based game called SnekCoin Saga",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "express-rate-limit": "^7.1.4",
+        "mongoose": "^8.0.1",
+        "node-schedule": "^2.1.1",
+        "web3": "^4.2.2"
+    },
+    "author": "",
+    "license": "ISC"
+}
