@@ -3,12 +3,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const { ethers } = require('ethers');
+const JsonRpcProvider = ethers.JsonRpcProvider;
+const provider = new JsonRpcProvider(process.env.INFURA_URL);
 const contractABI = require('./ABI.json'); // Path to your ABI file
 const contractAddress = process.env.CONTRACT_ADDRESS;
 const contract = new ethers.Contract(contractAddress, contractABI, provider);
-const JsonRpcProvider = ethers.JsonRpcProvider;
-const provider = new JsonRpcProvider(process.env.INFURA_URL);
-
 
 const app = express();
 app.use(cors({
