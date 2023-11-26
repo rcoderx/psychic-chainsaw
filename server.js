@@ -14,6 +14,9 @@ app.use(cors({
     origin: 'https://legendary-memory-ten.vercel.app/' // Replace with your front-end's domain
 }));
 const rateLimit = require('express-rate-limit');
+app.use(express.json());
+// Trust the first proxy
+app.set('trust proxy', 1);
 
 // Apply rate limits to all requests
 const apiLimiter = rateLimit({
