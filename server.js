@@ -11,7 +11,7 @@ const contract = new ethers.Contract(contractAddress, contractABI, provider);
 
 const app = express();
 app.use(cors({
-    origin: 'http://your-frontend-domain.com' // Replace with your front-end's domain
+    origin: 'https://legendary-memory-ten.vercel.app/' // Replace with your front-end's domain
 }));
 const rateLimit = require('express-rate-limit');
 
