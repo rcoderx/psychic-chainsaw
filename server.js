@@ -108,26 +108,31 @@ app.post('/updateScore', async (req, res) => {
     }
 });
 
-// Endpoint to update lives
 app.post('/updateLives', async (req, res) => {
-    try {
-        console.log("POST /updateLives called with:", req.body);
+    const { address, livesChange } = req.body;
 
-    if (!address || !Number.isInteger(lives)) {
+    if (!address || !Number.isInteger(livesChange)) {
         return res.status(400).send('Invalid request');
     }
 
     try {
-        await Player.findOneAndUpdate({ address }, { $set: { lives } });
-        res.send('Lives updated successfully');
+        const player = await Player.findOne({ address });
+        if (!player) {
+            return res.status(404).send('Player not found');
+        }
+
+        // Update the lives and ensure it doesn't go below zero
+        player.lives = Math.max(0, player.lives + livesChange);
+        await player.save();
+
+        res.json({ lives: player.lives });
     } catch (error) {
+        console.error("Error in POST /updateLives:", error);
         res.status(500).send('Error updating lives');
     }
-} catch (error) {
-    console.error("Error in POST /updateLives:", error);
-    res.status(500).send('Error updating lives');
-}
 });
+
+
 
 
 app.get('/getLives', async (req, res) => {
