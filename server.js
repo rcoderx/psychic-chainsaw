@@ -13,6 +13,11 @@ const app = express();
 app.use(cors({
     origin: 'https://legendary-memory-ten.vercel.app/' // Replace with your front-end's domain
 }));
+const corsOptions = {
+    origin: 'https://legendary-memory-ten.vercel.app',
+    optionsSuccessStatus: 200
+  };
+  app.use(cors(corsOptions));
 const rateLimit = require('express-rate-limit');
 app.use(express.json());
 // Trust the first proxy
