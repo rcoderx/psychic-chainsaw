@@ -2,11 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { ethers } = require('ethers');
 const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_URL);
 const contractABI = require('./ABI.json'); // Path to your ABI file
 const contractAddress = process.env.CONTRACT_ADDRESS;
 const contract = new ethers.Contract(contractAddress, contractABI, provider);
-const { ethers } = require('ethers');
+
 
 const app = express();
 app.use(cors({
@@ -43,12 +44,9 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 const playerSchema = new mongoose.Schema({
     address: String,
     score: Number,
-    
-        address: String,
-        score: Number,
-        lives: { type: Number, default: 10 } // New field for lives
-    });
-    
+    lives: { type: Number, default: 10 }
+});
+
 
 const Player = mongoose.model('Player', playerSchema);
 
