@@ -3,6 +3,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const Web3 = require('web3');
+const web3 = new Web3(process.env.INFURA_URL);
+const contractABI = require('./ABI.json'); // Path to your ABI file
+const contractAddress = process.env.CONTRACT_ADDRESS;
+const contract = new web3.eth.Contract(contractABI, contractAddress);
+
 const app = express();
 app.use(cors({
     origin: 'http://your-frontend-domain.com' // Replace with your front-end's domain
@@ -148,10 +153,6 @@ app.post('/distributeRewards', async (req, res) => {
 });
 
 // Web3 and Smart Contract Setup
-const web3 = new Web3(new Web3.providers.HttpProvider(process.env.INFURA_URL));
-const contractABI = require('./path_to_ABI.json'); // Path to your ABI file
-const contractAddress = process.env.CONTRACT_ADDRESS;
-const contract = new web3.eth.Contract(contractABI, contractAddress);
 
 // Function to distribute rewards
 app.post('/distributeRewards', async (req, res) => {
