@@ -34,7 +34,8 @@ schedule.scheduleJob('0 0 * * *', async function() {
     console.log('Lives reset for all players');
 });
 
-
+// Add this line to log the MongoDB URI
+console.log('MongoDB URI:', process.env.MONGODB_URI);
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
