@@ -2,11 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Web3 = require('web3');
-const web3 = new Web3(process.env.INFURA_URL);
+const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_URL);
 const contractABI = require('./ABI.json'); // Path to your ABI file
 const contractAddress = process.env.CONTRACT_ADDRESS;
-const contract = new web3.eth.Contract(contractABI, contractAddress);
+const contract = new ethers.Contract(contractAddress, contractABI, provider);
+const { ethers } = require('ethers');
 
 const app = express();
 app.use(cors({
@@ -190,10 +190,11 @@ async function distributeRewards() {
         const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
         const totalRewardPool = 1000; // Total reward tokens, adjust as necessary
 
+        const contract = new ethers.Contract(contractAddress, contractABI, provider.getSigner());
         for (const player of topPlayers) {
-            const rewardAmount = (player.score / totalScore) * totalRewardPool;
-            await contract.methods.transfer(player.address, rewardAmount)
-                .send({ from: web3.eth.defaultAccount }); // Ensure this account has enough Ether for gas
+            const rewardAmount = ethers.utils.parseUnits((player.score / totalScore * totalRewardPool).toString(), 'ether');
+            const tx = await contract.transfer(player.address, rewardAmount);
+            await tx.wait();
         }
 
         console.log('Rewards distributed successfully');
@@ -201,6 +202,7 @@ async function distributeRewards() {
         console.error('Error distributing rewards:', error);
     }
 }
+
 
 // Schedule the reward distribution to occur daily at 12 AM UTC
 schedule.scheduleJob('0 0 * * *', async function() {
