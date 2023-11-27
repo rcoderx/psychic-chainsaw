@@ -155,28 +155,36 @@ async function distributeRewards() {
     try {
         const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
         const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
-        const totalRewardPool = ethers.utils.parseUnits('1000', '18'); // Replace 'TOKEN_DECIMALS' with your token's decimal places
+        const totalRewardPool = ethers.utils.parseUnits('1000', '18');
 
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
         const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
         for (const player of topPlayers) {
-            // Calculate the reward amount, rounding down to the nearest whole number
-            const rewardFraction = player.score / totalScore;
-            const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, '18')); // Replace 'TOKEN_DECIMALS' with your token's decimal places
-            const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), '18'); // Replace 'TOKEN_DECIMALS' with your token's decimal places
+            try {
+                const rewardFraction = player.score / totalScore;
+                const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, '18'));
+                const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), '18');
 
-            const tx = await contract.transfer(player.address, rewardInTokenUnits);
-            await tx.wait();
+                console.log(`Distributing ${rewardAmount} tokens to ${player.address}`);
+
+                const tx = await contract.transfer(player.address, rewardInTokenUnits);
+                await tx.wait();
+
+                console.log(`Successfully distributed ${rewardAmount} tokens to ${player.address}`);
+            } catch (error) {
+                console.error(`Error distributing rewards to ${player.address}:`, error);
+            }
         }
         
         console.log('Rewards distributed successfully');
         return 'Rewards distributed successfully';
     } catch (error) {
-        console.error('Error distributing rewards:', error);
+        console.error('Error in distributeRewards function:', error);
         throw new Error('Error distributing rewards');
     }
 }
+
 
 
 
