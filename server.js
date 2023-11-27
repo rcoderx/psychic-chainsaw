@@ -152,19 +152,34 @@ app.get('/getLives', async (req, res) => {
 // Endpoint to distribute rewards to the top 100 players
 // Common function for distributing rewards
 async function calculateRewards() {
-    const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
-    const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
-    const totalRewardPool = ethers.utils.parseUnits('1000', '18');
+    // Fetch players from the database
+    const players = await Player.find({});
+    if (players.length === 0) {
+        return []; // No players to distribute rewards to
+    }
 
-    let playerRewards = topPlayers.map(player => {
-        const rewardFraction = player.score / totalScore;
-        const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, '18'));
-        const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), '18');
-        return { address: player.address, reward: rewardInTokenUnits };
+    // Calculate total score
+    const totalScore = players.reduce((acc, player) => acc + player.score, 0);
+    if (totalScore === 0) {
+        return []; // No scores to calculate rewards
+    }
+
+    // Define total distribution amount (example: 1000 tokens)
+    const totalDistributionAmount = 1000;
+
+    // Calculate rewards for each player
+    const rewards = players.map(player => {
+        const playerFraction = player.score / totalScore;
+        let rewardAmount = Math.ceil(playerFraction * totalDistributionAmount); // Round up to nearest whole number
+        return {
+            address: player.address,
+            reward: rewardAmount
+        };
     });
 
-    return playerRewards;
+    return rewards;
 }
+
 
 async function distributeRewards(playerRewards) {
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
