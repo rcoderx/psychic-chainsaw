@@ -155,14 +155,18 @@ async function distributeRewards() {
     try {
         const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
         const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
-        const totalRewardPool = ethers.utils.parseUnits('1000', 'ether');
+        const totalRewardPool = ethers.utils.parseUnits('1000', 'TOKEN_DECIMALS'); // Replace 'TOKEN_DECIMALS' with your token's decimal places
 
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
         const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
         for (const player of topPlayers) {
-            const rewardAmount = (player.score / totalScore) * totalRewardPool;
-            const tx = await contract.transfer(player.address, rewardAmount);
+            // Calculate the reward amount, rounding down to the nearest whole number
+            const rewardFraction = player.score / totalScore;
+            const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, 'TOKEN_DECIMALS')); // Replace 'TOKEN_DECIMALS' with your token's decimal places
+            const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), 'TOKEN_DECIMALS'); // Replace 'TOKEN_DECIMALS' with your token's decimal places
+
+            const tx = await contract.transfer(player.address, rewardInTokenUnits);
             await tx.wait();
         }
         
@@ -173,6 +177,8 @@ async function distributeRewards() {
         throw new Error('Error distributing rewards');
     }
 }
+
+
 
 // POST endpoint to manually trigger reward distribution
 app.post('/distributeRewards', async (req, res) => {
