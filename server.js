@@ -181,6 +181,30 @@ async function distributeRewards(playerRewards) {
         }
     }
 }
+// Endpoint to calculate rewards
+app.post('/calculate-rewards', async (req, res) => {
+    try {
+        const rewards = await calculateRewards();
+        console.log('Rewards calculated:', rewards);
+        res.json(rewards);
+    } catch (error) {
+        console.error('Error calculating rewards:', error);
+        res.status(500).json({ error: 'Error calculating rewards' });
+    }
+});
+
+// Endpoint to distribute rewards
+app.post('/distribute-rewards', async (req, res) => {
+    try {
+        const rewards = await calculateRewards();
+        await distributeRewards(rewards);
+        console.log('Rewards distributed');
+        res.json({ message: 'Rewards distributed successfully' });
+    } catch (error) {
+        console.error('Error distributing rewards:', error);
+        res.status(500).json({ error: 'Error distributing rewards' });
+    }
+});
 
 
 const port = process.env.PORT || 3000;
