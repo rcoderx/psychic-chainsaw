@@ -151,67 +151,37 @@ app.get('/getLives', async (req, res) => {
 });
 // Endpoint to distribute rewards to the top 100 players
 // Common function for distributing rewards
-async function distributeRewards() {
-    try {
-        const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
-        const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
-        const totalRewardPool = ethers.utils.parseUnits('1000', '18');
+async function calculateRewards() {
+    const topPlayers = await Player.find().sort({ score: -1 }).limit(100);
+    const totalScore = topPlayers.reduce((sum, player) => sum + player.score, 0);
+    const totalRewardPool = ethers.utils.parseUnits('1000', '18');
 
-        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-        const contract = new ethers.Contract(contractAddress, contractABI, wallet);
+    let playerRewards = topPlayers.map(player => {
+        const rewardFraction = player.score / totalScore;
+        const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, '18'));
+        const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), '18');
+        return { address: player.address, reward: rewardInTokenUnits };
+    });
 
-        let players = [];
-        let amounts = [];
+    return playerRewards;
+}
 
-        for (const player of topPlayers) {
-            try {
-                const rewardFraction = player.score / totalScore;
-                const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, '18'));
-                const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), '18');
+async function distributeRewards(playerRewards) {
+    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+    const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
-                players.push(player.address);
-                amounts.push(rewardInTokenUnits);
-
-                console.log(`Prepared reward of ${rewardAmount} tokens for player at address ${player.address}`);
-            } catch (error) {
-                console.error(`Error preparing rewards for player at address ${player.address}:`, error);
-            }
-        }
-
+    for (const rewardInfo of playerRewards) {
         try {
-            console.log('Initiating rewards distribution...');
-            const tx = await contract.distributeRewards(players, amounts);
+            console.log(`Distributing ${ethers.utils.formatUnits(rewardInfo.reward, '18')} tokens to ${rewardInfo.address}`);
+            const tx = await contract.transfer(rewardInfo.address, rewardInfo.reward);
             await tx.wait();
-            console.log('Rewards distributed successfully');
+            console.log(`Successfully distributed to ${rewardInfo.address}`);
         } catch (error) {
-            console.error('Error during rewards distribution:', error);
+            console.error(`Error distributing rewards to ${rewardInfo.address}:`, error);
         }
-
-        return 'Rewards distribution process completed';
-    } catch (error) {
-        console.error('Error in distributeRewards function:', error);
-        throw new Error('Error distributing rewards');
     }
 }
 
-
-
-
-
-// POST endpoint to manually trigger reward distribution
-app.post('/distributeRewards', async (req, res) => {
-    try {
-        const message = await distributeRewards();
-        res.send(message);
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-});
-
-// Schedule automatic reward distribution at 12 AM UTC
-schedule.scheduleJob('0 0 * * *', async function() {
-    await distributeRewards();
-});
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
