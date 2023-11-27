@@ -181,6 +181,10 @@ async function calculateRewards() {
 }
 
 
+function toSmallestTokenUnit(amount, decimals) {
+    return BigInt(amount) * BigInt(10 ** decimals);
+}
+
 async function distributeRewards(playerRewards) {
     // Ensure there are rewards to distribute
     if (playerRewards.length === 0) {
@@ -190,7 +194,7 @@ async function distributeRewards(playerRewards) {
 
     // Prepare the addresses and amounts arrays
     const addresses = playerRewards.map(reward => reward.address);
-    const amounts = playerRewards.map(reward => ethers.utils.parseUnits(reward.reward.toString(), 18)); // Convert to smallest unit
+    const amounts = playerRewards.map(reward => toSmallestTokenUnit(reward.reward, 18)); // Convert to smallest unit using the custom function
 
     // Initialize the wallet and contract for transactions
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
@@ -198,13 +202,14 @@ async function distributeRewards(playerRewards) {
 
     try {
         // Call the distributeRewards function of the smart contract
-        const tx = await rewardContract.distributeRewards(addresses, amounts);
+        const tx = await rewardContract.distributeRewards(addresses, amounts.map(amount => amount.toString()));
         await tx.wait();
         console.log(`Rewards distributed successfully`);
     } catch (error) {
         console.error(`Error distributing rewards:`, error);
     }
 }
+
 
 // Endpoint to calculate rewards
 app.post('/calculate-rewards', async (req, res) => {
