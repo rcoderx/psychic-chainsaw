@@ -160,30 +160,40 @@ async function distributeRewards() {
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
         const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
+        let players = [];
+        let amounts = [];
+
         for (const player of topPlayers) {
             try {
                 const rewardFraction = player.score / totalScore;
                 const rewardAmount = Math.floor(rewardFraction * ethers.utils.formatUnits(totalRewardPool, '18'));
                 const rewardInTokenUnits = ethers.utils.parseUnits(rewardAmount.toString(), '18');
 
-                console.log(`Distributing ${rewardAmount} tokens to ${player.address}`);
+                players.push(player.address);
+                amounts.push(rewardInTokenUnits);
 
-                const tx = await contract.transfer(player.address, rewardInTokenUnits);
-                await tx.wait();
-
-                console.log(`Successfully distributed ${rewardAmount} tokens to ${player.address}`);
+                console.log(`Prepared reward of ${rewardAmount} tokens for player at address ${player.address}`);
             } catch (error) {
-                console.error(`Error distributing rewards to ${player.address}:`, error);
+                console.error(`Error preparing rewards for player at address ${player.address}:`, error);
             }
         }
-        
-        console.log('Rewards distributed successfully');
-        return 'Rewards distributed successfully';
+
+        try {
+            console.log('Initiating rewards distribution...');
+            const tx = await contract.distributeRewards(players, amounts);
+            await tx.wait();
+            console.log('Rewards distributed successfully');
+        } catch (error) {
+            console.error('Error during rewards distribution:', error);
+        }
+
+        return 'Rewards distribution process completed';
     } catch (error) {
         console.error('Error in distributeRewards function:', error);
         throw new Error('Error distributing rewards');
     }
 }
+
 
 
 
