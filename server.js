@@ -182,20 +182,30 @@ async function calculateRewards() {
 
 
 async function distributeRewards(playerRewards) {
-    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-    const contract = new ethers.Contract(contractAddress, contractABI, wallet);
+    // Ensure there are rewards to distribute
+    if (playerRewards.length === 0) {
+        console.log('No rewards to distribute');
+        return;
+    }
 
-    for (const rewardInfo of playerRewards) {
-        try {
-            console.log(`Distributing ${ethers.utils.formatUnits(rewardInfo.reward, '18')} tokens to ${rewardInfo.address}`);
-            const tx = await contract.transfer(rewardInfo.address, rewardInfo.reward);
-            await tx.wait();
-            console.log(`Successfully distributed to ${rewardInfo.address}`);
-        } catch (error) {
-            console.error(`Error distributing rewards to ${rewardInfo.address}:`, error);
-        }
+    // Prepare the addresses and amounts arrays
+    const addresses = playerRewards.map(reward => reward.address);
+    const amounts = playerRewards.map(reward => ethers.utils.parseUnits(reward.reward.toString(), 18)); // Convert to smallest unit
+
+    // Initialize the wallet and contract for transactions
+    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+    const rewardContract = new ethers.Contract(contractAddress, contractABI, wallet);
+
+    try {
+        // Call the distributeRewards function of the smart contract
+        const tx = await rewardContract.distributeRewards(addresses, amounts);
+        await tx.wait();
+        console.log(`Rewards distributed successfully`);
+    } catch (error) {
+        console.error(`Error distributing rewards:`, error);
     }
 }
+
 // Endpoint to calculate rewards
 app.post('/calculate-rewards', async (req, res) => {
     try {
