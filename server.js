@@ -170,10 +170,10 @@ async function calculateRewards() {
     // Calculate and return rewards for each player
     const rewards = players.map(player => {
         const playerFraction = player.score / totalScore;
-        const rewardAmount = toSmallestTokenUnit(Math.ceil(playerFraction * totalDistributionAmount), 18); // Using the custom conversion function
+        const rewardAmount = Math.ceil(playerFraction * totalDistributionAmount); // Round up to the nearest whole number
         return {
             address: player.address,
-            reward: rewardAmount.toString()
+            reward: rewardAmount
         };
     });
 
