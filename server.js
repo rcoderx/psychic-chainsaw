@@ -167,23 +167,23 @@ async function calculateRewards() {
     // Define total distribution amount (example: 1000 tokens)
     const totalDistributionAmount = 1000;
 
-    // Calculate and return rewards for each player
+    // Calculate rewards for each player
     const rewards = players.map(player => {
         const playerFraction = player.score / totalScore;
-        const rewardAmount = Math.ceil(playerFraction * totalDistributionAmount); // Round up to the nearest whole number
+        let rewardAmount = Math.ceil(playerFraction * totalDistributionAmount); // Round up to nearest whole number
         return {
             address: player.address,
             reward: rewardAmount
         };
     });
 
-    // Reset scores to zero
-    await Player.updateMany({}, { score: 0 });
-
     return rewards;
 }
 
 
+function toSmallestTokenUnit(amount, decimals) {
+    return BigInt(amount) * BigInt(10 ** decimals);
+}
 
 async function distributeRewards(playerRewards) {
     // Ensure there are rewards to distribute
@@ -205,17 +205,10 @@ async function distributeRewards(playerRewards) {
         const tx = await rewardContract.distributeRewards(addresses, amounts.map(amount => amount.toString()));
         await tx.wait();
         console.log(`Rewards distributed successfully`);
-
-        // Clear rewards after successful distribution
-        
-
     } catch (error) {
         console.error(`Error distributing rewards:`, error);
-        // Do not clear rewards if there's an error, so you can retry
     }
 }
-
-
 
 
 // Endpoint to calculate rewards
