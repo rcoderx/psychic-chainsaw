@@ -210,6 +210,25 @@ async function distributeRewards(playerRewards) {
     }
 }
 
+async function resetScoresAndRewards() {
+    try {
+        // Reset scores and rewards for all players
+        await Player.updateMany({}, { score: 0, reward: 0 });
+        console.log('Scores and rewards reset successfully.');
+    } catch (error) {
+        console.error('Error resetting scores and rewards:', error);
+    }
+}
+
+app.post('/reset-scores-rewards', async (req, res) => {
+    try {
+        await resetScoresAndRewards();
+        res.json({ message: 'Scores and rewards reset successfully.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error resetting scores and rewards' });
+    }
+});
+
 
 // Endpoint to calculate rewards
 app.post('/calculate-rewards', async (req, res) => {
