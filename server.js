@@ -167,18 +167,22 @@ async function calculateRewards() {
     // Define total distribution amount (example: 1000 tokens)
     const totalDistributionAmount = 1000;
 
-    // Calculate rewards for each player
+    // Calculate and return rewards for each player
     const rewards = players.map(player => {
         const playerFraction = player.score / totalScore;
-        let rewardAmount = Math.ceil(playerFraction * totalDistributionAmount); // Round up to nearest whole number
+        const rewardAmount = toSmallestTokenUnit(Math.ceil(playerFraction * totalDistributionAmount), 18); // Using the custom conversion function
         return {
             address: player.address,
-            reward: rewardAmount
+            reward: rewardAmount.toString()
         };
     });
 
+    // Reset scores to zero
+    await Player.updateMany({}, { score: 0 });
+
     return rewards;
 }
+
 
 
 function toSmallestTokenUnit(amount, decimals) {
@@ -194,7 +198,7 @@ async function distributeRewards(playerRewards) {
 
     // Prepare the addresses and amounts arrays
     const addresses = playerRewards.map(reward => reward.address);
-    const amounts = playerRewards.map(reward => toSmallestTokenUnit(reward.reward, 18)); // Convert to smallest unit using the custom function
+    const amounts = playerRewards.map(reward => reward.reward);
 
     // Initialize the wallet and contract for transactions
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
@@ -202,13 +206,18 @@ async function distributeRewards(playerRewards) {
 
     try {
         // Call the distributeRewards function of the smart contract
-        const tx = await rewardContract.distributeRewards(addresses, amounts.map(amount => amount.toString()));
+        const tx = await rewardContract.distributeRewards(addresses, amounts);
         await tx.wait();
         console.log(`Rewards distributed successfully`);
+
+        // Clear rewards after successful distribution
+        await Player.updateMany({}, { reward: 0 });
+
     } catch (error) {
         console.error(`Error distributing rewards:`, error);
     }
 }
+
 
 
 // Endpoint to calculate rewards
