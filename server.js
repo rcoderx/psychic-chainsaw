@@ -207,7 +207,7 @@ async function distributeRewards(playerRewards) {
         console.log(`Rewards distributed successfully`);
 
         // Clear rewards after successful distribution
-        await Player.updateMany({}, { reward: 0 });
+        
 
     } catch (error) {
         console.error(`Error distributing rewards:`, error);
